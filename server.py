@@ -13,7 +13,7 @@ def handle_connection(connection: socket):
         while True:
             send(connection, {
                 'text': greetings,
-                'options': screens['title'] + ['I want to ask questions']
+                'options': screens['title']
             })
             action = receive(connection)
 
@@ -34,6 +34,15 @@ def handle_connection(connection: socket):
                             continue
                         current_screen_id = screen['options']['next_screen_id'][screen['options']['text'].index(data)]
                         data = screen['options']['value'][screen['options']['text'].index(data)]
+
+                        if data == 'bot':
+                            send(connection,
+                                 {'text': 'Hello, I am AI bot. I am here to answer your questions', 'options': []})
+
+                            while True:
+                                receive(connection)
+                                send(connection, {'text': 'I am not sure I understand your questions', 'options': []})
+
                     else:
                         current_screen_id = screen['next_screen_id']
 
@@ -48,12 +57,6 @@ def handle_connection(connection: socket):
                 if len(response) > 0:
                     db.put_response(client_id, to_json(response))
 
-            elif action == 'I want to ask questions':
-                send(connection, {'text': 'Hello, I am AI bot. I am here to answer your questions', 'options': []})
-
-                while True:
-                    receive(connection)
-                    send(connection, {'text': 'I am not sure I understand your questions', 'options': []})
 
     except (BrokenPipeError, IOError):
         connection.close()
