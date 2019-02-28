@@ -5,15 +5,15 @@ db = mariadb.connect(user='root', password='\'', database='superceed')
 
 def get_client(client_id):
     cursor = db.cursor()
-    cursor.execute('SELECT id, greetings FROM client WHERE id=%s', (client_id,))
-    client_id, greetings = cursor.fetchone()
+    cursor.execute('SELECT greetings FROM client WHERE id=%s', (client_id,))
+    greetings, = cursor.fetchone()
     cursor.execute('SELECT title, screen_id FROM client_screen WHERE client_id = %s', (client_id,))
     screens = {'title': [], 'screen_id': []}
     for title, screen_id in cursor.fetchall():
         screens['title'].append(title)
         screens['screen_id'].append(screen_id)
     cursor.close()
-    return client_id, greetings, screens
+    return greetings, screens
 
 
 def get_screen(screen_id):

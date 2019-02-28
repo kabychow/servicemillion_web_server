@@ -5,61 +5,63 @@ import json
 
 
 def handle_connection(connection: socket):
-    response = {}
-
     try:
-        client_id, greetings, screens = db.get_client(receive(connection))
+        client_id = receive(connection)
+        greetings, screens = db.get_client(client_id)
 
         while True:
-            send(connection, {
-                'text': greetings,
-                'options': screens['title']
-            })
-            action = receive(connection)
-
-            if action in screens['title']:
-                current_screen_id = screens['screen_id'][screens['title'].index(action)]
-
-                while True:
-                    screen = db.get_screen(current_screen_id)
-                    send(connection, {'text': screen['text'], 'options': screen['options']['text']})
-
-                    if screen['next_screen_id'] is None and len(screen['options']['next_screen_id']) == 0:
-                        break
-
-                    data = receive(connection)
-
-                    if len(screen['options']['text']) > 0:
-                        if data not in screen['options']['text']:
-                            continue
-                        current_screen_id = screen['options']['next_screen_id'][screen['options']['text'].index(data)]
-                        data = screen['options']['value'][screen['options']['text'].index(data)]
-
-                        if data == 'bot':
-                            send(connection,
-                                 {'text': 'Hello, I am AI bot. I am here to answer your questions', 'options': []})
-
-                            while True:
-                                receive(connection)
-                                send(connection, {'text': 'I am not sure I understand your questions', 'options': []})
-
-                    else:
-                        current_screen_id = screen['next_screen_id']
-
-                    if screen['label'] != '':
-                        if screen['is_array'] == 0:
-                            response[screen['label']] = data
-                        else:
-                            if screen['label'] not in response:
-                                response[screen['label']] = []
-                            response[screen['label']].append(data)
-
-                if len(response) > 0:
-                    db.put_response(client_id, to_json(response))
-
+            send(connection, {'text': greetings, 'options': screens['title']})
+            data = receive(connection)
+            if data in screens['title']:
+                action_flow(connection, client_id, screens['screen_id'][screens['title'].index(data)])
 
     except (BrokenPipeError, IOError):
         connection.close()
+
+
+def action_flow(connection: socket, client_id, screen_id):
+    response = {}
+
+    while True:
+        screen = db.get_screen(screen_id)
+        send(connection, {'text': screen['text'], 'options': screen['options']['text']})
+
+        if screen['next_screen_id'] is None and len(screen['options']['next_screen_id']) == 0:
+            break
+
+        data = receive(connection)
+
+        if len(screen['options']['text']) > 0:
+            if data not in screen['options']['text']:
+                continue
+            screen_id = screen['options']['next_screen_id'][screen['options']['text'].index(data)]
+            data = screen['options']['value'][screen['options']['text'].index(data)]
+
+            if data == 'bot':
+                action_bot(connection)
+        else:
+            screen_id = screen['next_screen_id']
+
+        if screen['label'] != '':
+            if screen['is_array'] == 0:
+                response[screen['label']] = data
+            else:
+                if screen['label'] not in response:
+                    response[screen['label']] = []
+                response[screen['label']].append(data)
+
+    if len(response) > 0:
+        db.put_response(client_id, to_json(response))
+
+
+def action_bot(connection: socket):
+    send(connection, {'text': 'Hello, I am AI bot. I am here to answer your questions', 'options': []})
+
+    while True:
+        data = receive(connection)
+        if data == 'thanks':
+            break
+        send(connection, {'text': 'I am not sure I understand your questions', 'options': []})
 
 
 def accept_connections():
