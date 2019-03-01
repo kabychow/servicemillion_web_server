@@ -99,6 +99,8 @@ def action_bot(connection: socket, description):
                 if receive(connection) == 'Yes':
                     send(connection, {'text': 'This function is not supported yet...', 'options': []})
                     break
+                else:
+                    send(connection, {'text': 'Okay', 'options': []})
             else:
                 send(connection, {'text': sent_tokens[idx], 'options': []})
             sent_tokens.remove(user_response)

@@ -11,7 +11,7 @@ def receive():
 
 client_socket = socket(AF_INET, SOCK_STREAM)
 client_socket.connect(('khaibin.asuscomm.com', 8844))
-client_socket.send(b'2')
+client_socket.send(bytes(input('Enter the client id to connect: '), 'utf8'))
 Thread(target=receive).start()
 
 while True:
