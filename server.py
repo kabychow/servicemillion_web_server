@@ -1,7 +1,6 @@
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 import json
-import random
 import string
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -67,14 +66,11 @@ def action_flow(connection: socket, client_id, screen_id, description):
 
 def action_bot(connection: socket, description):
     def normalize(text):
-        return [lemmer.lemmatize(token) for token in nltk.word_tokenize(text.lower().translate(remove_punct_dict))]
+        lemma = nltk.stem.WordNetLemmatizer()
+        return [lemma.lemmatize(token) for token in
+                nltk.word_tokenize(text.translate(dict((ord(punct), None) for punct in string.punctuation)))]
 
-    description = description.lower()
-
-    sent_tokens = nltk.sent_tokenize(description)
-    lemmer = nltk.stem.WordNetLemmatizer()
-
-    remove_punct_dict = dict((ord(punct), None) for punct in string.punctuation)
+    sent_tokens = nltk.sent_tokenize(description.lower())
 
     send(connection, {'text': 'Hi, I am AI Bot and I am here to answer your questions!', 'options': []})
     send(connection, {'text': 'If you want to exit, type Bye!', 'options': []})
@@ -100,6 +96,9 @@ def action_bot(connection: socket, description):
             if req_vector == 0:
                 send(connection, {'text': 'I am not sure with that', 'options': []})
                 send(connection, {'text': 'Do you want to contact customer support?', 'options': ['Yes', 'No']})
+                if receive(connection) == 'Yes':
+                    send(connection, {'text': 'This function is not supported yet...', 'options': []})
+                    break
             else:
                 send(connection, {'text': sent_tokens[idx], 'options': []})
             sent_tokens.remove(user_response)
