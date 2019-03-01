@@ -7,7 +7,7 @@ import json
 def handle_connection(connection: socket):
     try:
         client_id = receive(connection)
-        greetings, screens = db.get_client(client_id)
+        greetings, screens, description = db.get_client(client_id)
 
         while True:
             send(connection, {'text': greetings, 'options': screens['title']})
