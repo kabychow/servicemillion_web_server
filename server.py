@@ -24,7 +24,7 @@ def handle_connection(connection: socket):
             send(connection, {'text': greetings, 'options': screens['title']})
             data = receive(connection)
             if data in screens['title']:
-                action_flow(connection, client_id, screens['screen_id'][screens['title'].index(data)])
+                action_flow(connection, client_id, screens['screen_id'][screens['title'].index(data)], description)
 
     except (BrokenPipeError, IOError):
         connection.close()
