@@ -4,6 +4,8 @@ import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import database as db
+import warnings
+warnings.filterwarnings("ignore")
 
 #nltk.download('punkt')
 #nltk.download('wordnet')
