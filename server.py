@@ -109,7 +109,7 @@ def action_bot(connection: socket, description):
     send(connection, {'text': 'If you want to exit, type Bye!', 'options': []})
 
     while flag:
-        user_response = input()
+        user_response = receive(connection)
         user_response = user_response.lower()
         if user_response != 'bye':
             if user_response == 'thanks' or user_response == 'thank you':
