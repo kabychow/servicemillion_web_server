@@ -1,6 +1,6 @@
 import mysql.connector as mariadb
 
-db = mariadb.connect(user='root', password='root', database='superceed')
+db = mariadb.connect(user='root', password='\'', database='superceed')
 
 
 def get_client(client_id):
