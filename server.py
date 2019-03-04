@@ -1,5 +1,5 @@
-from socket import AF_INET, socket, SOCK_STREAM
-from threading import Thread
+import asyncio
+import websockets
 import json
 import string
 import nltk
@@ -14,33 +14,32 @@ warnings.filterwarnings("ignore")
 #nltk.download('stopwords')
 
 
-def handle_connection(connection: socket):
-    try:
-        connection_info = receive(connection)
-        client_id = receive(connection)
-        greetings, screens, description = db.get_client(client_id)
-
-        while True:
-            send(connection, {'text': greetings, 'options': screens['title']})
-            data = receive(connection)
-            if data in screens['title']:
-                action_flow(connection, client_id, screens['screen_id'][screens['title'].index(data)], description)
-
-    except (BrokenPipeError, IOError):
-        connection.close()
+def to_json(data):
+    return str(json.dumps(data, ensure_ascii=False))
 
 
-def action_flow(connection: socket, client_id, screen_id, description):
+async def handle_connection(websocket):
+    client_id = await websocket.recv()
+    greetings, screens, description = db.get_client(client_id)
+
+    while True:
+        await websocket.send(to_json({'text': greetings, 'options': screens['title']}))
+        data = await websocket.recv()
+        if data in screens['title']:
+            await action_flow(websocket, client_id, screens['screen_id'][screens['title'].index(data)], description)
+
+
+async def action_flow(websocket, client_id, screen_id, description):
     response = {}
 
     while True:
         screen = db.get_screen(screen_id)
-        send(connection, {'text': screen['text'], 'options': screen['options']['text']})
+        await websocket.send(to_json({'text': screen['text'], 'options': screen['options']['text']}))
 
         if screen['next_screen_id'] is None and len(screen['options']['next_screen_id']) == 0:
             break
 
-        data = receive(connection)
+        data = await websocket.recv()
 
         if len(screen['options']['text']) > 0:
             if data not in screen['options']['text']:
@@ -49,7 +48,7 @@ def action_flow(connection: socket, client_id, screen_id, description):
             data = screen['options']['value'][screen['options']['text'].index(data)]
 
             if data == 'bot':
-                action_bot(connection, description)
+                await action_bot(websocket, description)
         else:
             screen_id = screen['next_screen_id']
 
@@ -65,7 +64,7 @@ def action_flow(connection: socket, client_id, screen_id, description):
         db.put_response(client_id, to_json(response))
 
 
-def action_bot(connection: socket, description):
+async def action_bot(websocket, description):
     def normalize(text):
         lemma = nltk.stem.WordNetLemmatizer()
         return [lemma.lemmatize(token) for token in
@@ -73,18 +72,19 @@ def action_bot(connection: socket, description):
 
     sent_tokens = nltk.sent_tokenize(description.lower())
 
-    send(connection, {'text': 'Hi, I am AI Bot and I am here to answer your questions!', 'options': []})
-    send(connection, {'text': 'If you want to exit, type Bye!', 'options': []})
+    await websocket.send(to_json({'text': 'Hi, I am AI Bot and I am here to answer your questions!', 'options': []}))
+    await websocket.send(to_json({'text': 'If you want to exit, type Bye!', 'options': []}))
 
     while True:
-        user_response = receive(connection).lower()
+        user_response = await websocket.recv()
+        user_response = str(user_response).lower()
         if user_response in ['hi', 'hello', 'hey', 'yo']:
-            send(connection, {'text': 'hey', 'options': []})
+            await websocket.send(to_json({'text': 'hey', 'options': []}))
         elif user_response in ['thanks', 'thank you']:
-            send(connection, {'text': 'you are welcome', 'options': []})
+            await websocket.send(to_json({'text': 'you are welcome', 'options': []}))
             break
         elif user_response in ['bye']:
-            send(connection, {'text': 'goodbye!', 'options': []})
+            await websocket.send(to_json({'text': 'goodbye!', 'options': []}))
             break
         else:
             sent_tokens.append(user_response)
@@ -95,41 +95,20 @@ def action_bot(connection: socket, description):
             flat.sort()
             req_vector = flat[-2]
             if req_vector == 0:
-                send(connection, {'text': 'I am not sure with that', 'options': []})
-                send(connection, {'text': 'Do you want to contact customer support?', 'options': ['Yes', 'No']})
-                if receive(connection) == 'Yes':
-                    send(connection, {'text': 'This function is not supported yet...', 'options': []})
+                await websocket.send(to_json({'text': 'I am not sure with that', 'options': []}))
+                await websocket.send(to_json({'text': 'Do you want to contact customer support?', 'options': ['Yes', 'No']}))
+                if await websocket.recv() == 'Yes':
+                    await websocket.send(to_json({'text': 'This function is not supported yet!', 'options': []}))
                     break
                 else:
-                    send(connection, {'text': 'Okay', 'options': []})
+                    await websocket.send(to_json({'text': 'Okay', 'options': []}))
             else:
-                send(connection, {'text': sent_tokens[idx], 'options': []})
+                await websocket.send(to_json({'text': sent_tokens[idx], 'options': []}))
             sent_tokens.remove(user_response)
 
 
-def accept_connections():
-    while True:
-        connection, _ = server.accept()
-        Thread(target=handle_connection, args=(connection,)).start()
+start_server = websockets.serve(handle_connection, 'localhost', 8844)
 
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
 
-def receive(connection: socket, buffer_size=1024):
-    return connection.recv(buffer_size).decode('utf8')
-
-
-def send(connection: socket, data):
-    connection.send(bytes(to_json(data)))
-
-
-def to_json(data):
-    return json.dumps(data, ensure_ascii=False).encode('utf8')
-
-
-server = socket(AF_INET, SOCK_STREAM)
-server.bind(('', 8844))
-server.listen(128)
-print("Waiting for connection...")
-accept_thread = Thread(target=accept_connections)
-accept_thread.start()
-accept_thread.join()
-server.close()
