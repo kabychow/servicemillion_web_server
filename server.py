@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore")
 
 def handle_connection(connection: socket):
     try:
+        connection_info = receive(connection)
         client_id = receive(connection)
         greetings, screens, description = db.get_client(client_id)
 
