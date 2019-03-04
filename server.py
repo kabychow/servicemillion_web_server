@@ -18,7 +18,7 @@ def to_json(data):
     return str(json.dumps(data, ensure_ascii=False))
 
 
-async def handle_connection(websocket):
+async def handle_connection(websocket, _):
     client_id = await websocket.recv()
     greetings, screens, description = db.get_client(client_id)
 
