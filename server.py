@@ -145,14 +145,14 @@ async def action_chat(socket, client, response):
         else:
             if queue[client['id']][index]['_socket'].closed:
                 break
-            await queue[client['id']][index]['_socket'].send(to_json({'text': data, 'options': []}))
+            await queue[client['id']][index]['_socket'].send(data)
 
 
 def to_json(data): return str(json.dumps(data, ensure_ascii=False))
 
 
 queue = {}
-start_server = websockets.serve(handle_connection, 'localhost', 8844)
+start_server = websockets.serve(handle_connection, port=8844)
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
