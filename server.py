@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+from websockets.exceptions import ConnectionClosed
 import json
 import string
 import nltk
@@ -10,12 +11,7 @@ import database as db
 
 async def handle_connection(socket, _):
     data = json.loads(await socket.recv())
-    if 'action' in data:
-        queue[data['client_id']][data['action']]['_socket'] = socket
-        _socket = queue[data['client_id']][data['action']]['socket']
-        while True:
-            await _socket.send(to_json({'text': await socket.recv(), 'options': []}))
-    else:
+    if 'response_id' not in data:
         client = db.get_client(data['client_id'])
         while True:
             await socket.send(to_json({
@@ -26,6 +22,21 @@ async def handle_connection(socket, _):
             if data in client['screens']['title']:
                 index = client['screens']['title'].index(data)
                 await action_flow(socket, client, client['screens']['id'][index])
+    else:
+        try:
+            current = queue[data['client_id']][data['response_id']]
+            if current['socket'] is not None and current['_socket'] is None:
+                current['_socket'] = socket
+                while True:
+                    try:
+                        await current['socket'].send(to_json({'text': await socket.recv(), 'options': []}))
+                    except ConnectionClosed:
+                        await current['socket'].send(to_json({'text': 'Chat session ended.', 'options': ['Restart']}))
+                        break
+        except (IndexError, KeyError):
+            pass
+        finally:
+            socket.close()
 
 
 async def action_flow(socket, client, screen_id):
@@ -46,7 +57,7 @@ async def action_flow(socket, client, screen_id):
             screen_id = screen['options']['next_screen_id'][index]
             data = screen['options']['value'][index]
             if data == 'bot':
-                await action_bot(socket, client, response)
+                await action_bot(socket, client)
         else:
             screen_id = screen['next_screen_id']
         if screen['label'] != '':
@@ -60,7 +71,7 @@ async def action_flow(socket, client, screen_id):
         db.put_response(client['id'], to_json(response))
 
 
-async def action_bot(socket, client, response):
+async def action_bot(socket, client):
     def normalize(text):
         lemma = nltk.stem.WordNetLemmatizer()
         return [lemma.lemmatize(token) for token in
@@ -76,6 +87,11 @@ async def action_bot(socket, client, response):
         if data in ['hi', 'hello', 'hey', 'yo']:
             await socket.send(to_json({
                 'text': 'Hey',
+                'options': []
+            }))
+        elif data in ['ok', 'okay', 'oh', 'k', 'kk', 'no problem', 'can', 'i see', 'lol', 'haha', 'hahaha', 'ya', 'yeah']:
+            await socket.send(to_json({
+                'text': 'Yeah',
                 'options': []
             }))
         elif data in ['thanks', 'thank you']:
@@ -107,11 +123,11 @@ async def action_bot(socket, client, response):
                     'options': ['Yes', 'No']
                 }))
                 if await socket.recv() == 'Yes':
-                    await action_chat(socket, client, response)
+                    await action_chat(socket, client, data)
                     break
                 else:
                     await socket.send(to_json({
-                        'text': 'Okay. I am smarter when you ask me questions with simple keywords :)',
+                        'text': 'I am smarter when you ask me questions with simple keywords :)',
                         'options': []
                     }))
             else:
@@ -122,10 +138,20 @@ async def action_bot(socket, client, response):
             sent_tokens.remove(data)
 
 
-async def action_chat(socket, client, response):
+async def action_chat(socket, client, question):
+    await socket.send(to_json({
+        'text': 'What is your name?',
+        'options': []
+    }))
+    name = await socket.recv()
+    await socket.send(to_json({
+        'text': 'What is your email address?',
+        'options': []
+    }))
+    email = await socket.recv()
     if client['id'] not in queue:
         queue[client['id']] = []
-    queue[client['id']].append({'socket': socket, '_socket': None, 'response': response})
+    queue[client['id']].append({'socket': socket, '_socket': None, 'name': name, 'email': email, 'question': question})
     index = len(queue[client['id']]) - 1
     # TODO: push notifications to client customer support team
     await socket.send(to_json({

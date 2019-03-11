@@ -1,4 +1,1 @@
-## First time run
-#nltk.download('punkt')
-#nltk.download('wordnet')
-#nltk.download('stopwords')
+Require nltk packages: punkt, wordnet, stopwords
