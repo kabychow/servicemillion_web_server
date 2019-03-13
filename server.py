@@ -68,7 +68,22 @@ async def action_flow(socket, client, screen_id):
                     response[screen['label']] = []
                 response[screen['label']].append(data)
     if len(response) > 0:
-        db.put_response(client['id'], to_json(response))
+        response_id = db.put_response(client['id'], to_json(response))
+        final = 'Tracking ID: #' + str(response_id) + '\n\n'
+        for key in response:
+            final += key + ': '
+            if isinstance(response[key], list):
+                for item in response[key]:
+                    final += item + ', '
+                final = final[:-2]
+            else:
+                final += response[key]
+            final += '\n'
+        await socket.send(to_json({
+            'text': final,
+            'options': []
+        }))
+
 
 
 async def action_bot(socket, client):

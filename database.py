@@ -34,5 +34,7 @@ def get_screen(screen_id):
 def put_response(client_id, data):
     cursor = db.cursor()
     cursor.execute('INSERT INTO response(client_id, data) VALUES(%s, %s)', (client_id, data))
+    response_id = cursor.lastrowid
     cursor.close()
     db.commit()
+    return response_id
