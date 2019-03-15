@@ -47,9 +47,9 @@ async def action_flow(socket, client, screen_id):
             'text': screen['text'],
             'options': screen['options']['text']
         }))
+        data = await socket.recv()
         if screen['is_last']:
             break
-        data = await socket.recv()
         if len(screen['options']['text']) > 0:
             if data not in screen['options']['text']:
                 continue
@@ -83,7 +83,6 @@ async def action_flow(socket, client, screen_id):
             'text': final,
             'options': []
         }))
-
 
 
 async def action_bot(socket, client):
