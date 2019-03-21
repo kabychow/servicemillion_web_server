@@ -128,7 +128,7 @@ async def save(socket, db, client, response):
         else:
             text += '\n ' + response[key]
         text += '\n'
-    await socket.send(encode_message('Tracking ID: #' + str(tracking_id) + '\n' + text))
+    await socket.send(encode_message(text))
 
 
 def send_message(fcm_tokens, action, title, body):
