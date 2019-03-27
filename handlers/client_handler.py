@@ -21,13 +21,13 @@ async def handle(socket, _):
 
 async def flow(socket, db, client):
     response = {}
-    await socket.send(encode_message(client['greetings'], client['screens']['title']))
+    await socket.send(encode_data('text', client['greetings'], client['screens']['title']))
     data = await socket.recv()
     if data in client['screens']['title']:
         screen_id = client['screens']['id'][client['screens']['title'].index(data)]
         while True:
             screen = db.get_screen(screen_id)
-            await socket.send(encode_message(screen['text'], screen['options']['text']))
+            await socket.send(encode_data('text', screen['text'], screen['options']['text']))
             if len(screen['options']['text']) > 0 or screen['next_screen_id'] is not None:
                 data = await socket.recv()
                 if len(screen['options']['text']) > 0:
@@ -54,18 +54,18 @@ async def flow(socket, db, client):
 
 async def bot(socket, db, client):
     sent_tokens = nltk.sent_tokenize(client['description'].lower())
-    await socket.send(encode_message('Hi, I am AI Bot and I am here to answer your questions!'))
+    await socket.send(encode_data('text', 'Hi, I am AI Bot and I am here to answer your questions!'))
     while True:
         data = str(await socket.recv()).lower()
         if data in ['hi', 'hello', 'hey', 'yo']:
-            await socket.send(encode_message('I am AI Bot. Nice to meet you~'))
+            await socket.send(encode_data('text', 'I am AI Bot. Nice to meet you~'))
         elif data in ['ok', 'okay', 'oh', 'k', 'kk', 'no problem', 'can', 'i see', 'lol', 'haha', 'ya', 'yeah']:
-            await socket.send(encode_message('Glad that I helped :)'))
+            await socket.send(encode_data('text', 'Glad that I helped :)'))
         elif data in ['thanks', 'thank you']:
-            await socket.send(encode_message('You\'re welcome~'))
+            await socket.send(encode_data('text', 'You\'re welcome~'))
             break
         elif data in ['bye']:
-            await socket.send(encode_message('Goodbye~'))
+            await socket.send(encode_data('text', 'Goodbye~'))
             break
         else:
             sent_tokens.append(data)
@@ -75,22 +75,22 @@ async def bot(socket, db, client):
             flat = values.flatten()
             flat.sort()
             if flat[-2] == 0:
-                await socket.send(encode_message('I am not sure with that :('))
-                await socket.send(encode_message('Do you want to contact our customer support?', ['Yes', 'No']))
+                await socket.send(encode_data('text', 'I am not sure with that :('))
+                await socket.send(encode_data('text', 'Do you want to contact our customer support?', ['Yes', 'No']))
                 if await socket.recv() == 'Yes':
                     await ticket(socket, db, client, data)
                     break
                 else:
-                    await socket.send(encode_message('I am smarter when you ask me questions with simple keywords :)'))
+                    await socket.send(encode_data('text', 'I am smarter when you ask me with simple keywords :)'))
             else:
-                await socket.send(encode_message(sent_tokens[idx]))
+                await socket.send(encode_data('text', sent_tokens[idx]))
             sent_tokens.remove(data)
 
 
 async def ticket(socket, db, client, message):
-    await socket.send(encode_message('What is your name?'))
+    await socket.send(encode_data('text', 'What is your name?'))
     name = await socket.recv()
-    await socket.send(encode_message('What is your email address?'))
+    await socket.send(encode_data('text', 'What is your email address?'))
     email = await socket.recv()
     ticket_id = db.add_ticket(client['id'], name, email, message)
     await chat(socket, db, client, message, ticket_id)
@@ -98,23 +98,26 @@ async def ticket(socket, db, client, message):
 
 async def chat(socket, db, client, message, ticket_id):
     queue[ticket_id] = {'socket': socket, '_socket': None, 'messages': [{'reply': False, 'data': message}]}
-    await socket.send(encode_message('Waiting for response from customer support team..', ['Cancel']))
-    send_message(db.get_fcm_tokens(client['id']), 'chat', 'New customer on queue', 'Tap to join chat')
+    await socket.send(encode_data('text', 'Waiting for response from customer support team..', ['Cancel']))
+    send_message(db.get_fcm_tokens(client['id']), 'data', 'New customer on queue', 'Tap to join chat')
     try:
         while True:
             data = await socket.recv()
             if queue[ticket_id]['_socket'] is not None:
                 if queue[ticket_id]['_socket'].closed:
                     raise ConnectionClosed(1001, '')
-                await queue[ticket_id]['_socket'].send(data)
+                await queue[ticket_id]['_socket'].send(encode_data('text', data))
                 queue[ticket_id]['messages'].append({'reply': False, 'data': data})
             else:
                 if data == 'Cancel':
                     raise ConnectionClosed(1001, '')
-                await socket.send(encode_message('Still waiting for response from customer support team..', ['Cancel']))
+                await socket.send(encode_data('text', 'Waiting for response from customer support team..', ['Cancel']))
     except ConnectionClosed:
+        if queue[ticket_id]['_socket'] is not None and not queue[ticket_id]['_socket'].closed:
+            await queue[ticket_id]['_socket'].send(encode_data('end', 'Client has left the chat'))
+            queue[ticket_id]['_socket'].close()
         db.set_ticket_status(ticket_id, 0)
-        send_message(db.get_fcm_tokens(client['id']), 'chat', 'A customer left queue', 'Tap to send email')
+        send_message(db.get_fcm_tokens(client['id']), 'data', 'A customer left queue', 'Tap to send email')
 
 
 async def save(socket, db, client, response):
@@ -128,7 +131,8 @@ async def save(socket, db, client, response):
         else:
             text += '\n ' + response[key]
         text += '\n'
-    await socket.send(encode_message(text))
+    await socket.send(encode_data('text', text))
+    send_message(db.get_fcm_tokens(client['id']), 'data', 'New responses received', 'Tap to show details')
 
 
 def send_message(fcm_tokens, action, title, body):
@@ -158,10 +162,11 @@ def tokenize(text):
             nltk.word_tokenize(text.translate(dict((ord(p), None) for p in string.punctuation)))]
 
 
-def encode_message(message, options=None):
+def encode_data(action, message = '', options=None):
     if options is None:
         options = []
     return str(json.dumps({
-        'text': message,
+        'action': action,
+        'data': message,
         'options': options
     }, ensure_ascii=False))

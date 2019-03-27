@@ -5,6 +5,12 @@ class Database:
     def __init__(self):
         self.db = mariadb.connect(user='root', password='root', database='superceed')
 
+    def init(self):
+        cursor = self.db.cursor()
+        cursor.execute('UPDATE ticket SET status = 0')
+        cursor.close()
+        self.db.commit()
+
     def get_user(self, api_key):
         cursor = self.db.cursor(dictionary=True)
         cursor.execute('SELECT id, client_id FROM user WHERE api_key = %s',

@@ -1,5 +1,5 @@
 from websockets.exceptions import ConnectionClosed
-from handlers.client_handler import queue, encode_message, send_message
+from handlers.client_handler import queue, encode_data, send_message
 import json
 from database import Database
 
@@ -18,15 +18,15 @@ async def chat(socket, db, user, ticket):
         if queue[ticket['id']]['_socket'] is None:
             queue[ticket['id']]['_socket'] = socket
             db.set_ticket_user(ticket['id'], user['id'])
-            send_message(db.get_fcm_tokens(ticket['client_id']), 'chat', 'Yay!', 'Someone is replying to the customer')
+            send_message(db.get_fcm_tokens(ticket['client_id']), 'data', 'Yay!', 'Someone is replying to the customer')
             try:
                 while True:
                     data = await socket.recv()
-                    await queue[ticket['id']]['socket'].send(encode_message(data))
+                    await queue[ticket['id']]['socket'].send(encode_data('text', data))
                     queue[ticket['id']]['messages'].append({'reply': True, 'data': data})
             except ConnectionClosed:
                 db.set_ticket_status(ticket['id'], 0)
-                await queue[ticket['id']]['socket'].send(encode_message('Chat session ended.', ['Restart']))
+                await queue[ticket['id']]['socket'].send(encode_data('text', 'Chat session ended.', ['Restart']))
                 db.put_message(ticket['id'], str(json.dumps(queue[ticket['id']]['messages'], ensure_ascii=False)))
     except KeyError:
         pass
