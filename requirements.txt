@@ -1,0 +1,5 @@
+scikit-learn
+requests
+nltk
+mysql-connector
+websockets

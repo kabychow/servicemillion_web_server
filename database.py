@@ -3,7 +3,7 @@ import mysql.connector as mariadb
 
 class Database:
     def __init__(self):
-        self.db = mariadb.connect(user='root', password='root', database='superceed')
+        self.db = mariadb.connect(user='root', password='', database='superceed')
 
     def init(self):
         cursor = self.db.cursor()
