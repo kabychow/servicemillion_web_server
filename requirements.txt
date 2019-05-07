@@ -1,0 +1,6 @@
+Flask
+spacy
+websockets
+mysql-connector
+
+# run: pip -m spacy download en_core_web_lg

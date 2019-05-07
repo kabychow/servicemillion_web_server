@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat &ndash; ServiceMillion</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script>
+        const socket = new WebSocket("ws://localhost:8844");
+        socket.onopen = function (event) {
+            socket.send('{{ queue_id }}');
+        };
+        socket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            alert(data)
+        };
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="row" style="margin-top: 10vh">
+        Queue ID: {{ queue_id }}
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</body>
+</html>
