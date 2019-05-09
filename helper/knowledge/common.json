@@ -1,0 +1,90 @@
+[
+   {
+      "input":[
+         "hi",
+         "hello",
+         "good morning",
+         "morning",
+         "hey",
+         "good evening",
+         "nice to meet you",
+         "yo",
+         "hi bot",
+         "hey bot"
+      ],
+      "output":[
+         "Hello!",
+         "Nice to meet you!",
+         "Hey!",
+         "Hi~"
+      ]
+   },
+   {
+      "input":[
+         "ok",
+         "k",
+         "yes",
+         "no",
+         "sure",
+         "no problem",
+         "can",
+         "okay",
+         "ya",
+         "yeah",
+         "alright",
+         "nothing"
+      ],
+      "output":[
+         "Okay!",
+         "No problem~",
+         "Ok"
+      ]
+   },
+   {
+      "input":[
+         "thanks",
+         "thankyou",
+         "thank you"
+      ],
+      "output":[
+         "You're welcome~",
+         "Great to know that you appreciate it! :)",
+         "No problem :D"
+      ]
+   },
+   {
+      "input":[
+         "what is the weather now?",
+         "what is the weather today?"
+      ],
+      "output":[
+         "Sorry I am not capable for doing that at the moment"
+      ]
+   },
+   {
+      "input":[
+         "joke",
+         "make me laugh"
+      ],
+      "output":[
+         "What\\u2019s the best thing about Switzerland? I don\\u2019t know, but the flag is a big plus",
+         "I invented a new word: Plagiarism!",
+         "Why do we tell actors to \\u201cbreak a leg?\\u201d? Because every play has a cast.",
+         "Why don\\u2019t scientists trust atoms? Because they make up everything",
+         "Where are average things manufactured? The satisfactory.",
+         "A man tells his doctor, \\u201cDoc, help me. I\\u2019m addicted to Twitter!\\u201d. The doctor replies, \\u201cSorry, I don\\u2019t follow you \\u2026\\u201d",
+         "What do you call a fake noodle? An impasta"
+      ]
+   },
+   {
+      "input":[
+         "can you sing?",
+         "sing a song",
+         "sing for me",
+         "what song can you sing?"
+      ],
+      "output":[
+         "Maybe you sing it for me? ^.^"
+      ]
+   }
+]

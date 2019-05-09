@@ -1,1 +1,2 @@
-from helper.database.functions import *
+from helper.database.database import DB
+

@@ -1,12 +1,12 @@
 import secrets
 from helper.session.session import Session
 
-_sessions = {}
+sessions = {}
 
 
 def get(session_id):
-    if session_id in _sessions:
-        return _sessions[session_id]
+    if session_id in sessions:
+        return sessions[session_id]
 
 
 def add(client):
@@ -16,5 +16,5 @@ def add(client):
         'text': client['flow']['text'],
         'options': client['flow']['type']
     })
-    _sessions[session_id] = session
+    sessions[session_id] = session
     return session_id, session

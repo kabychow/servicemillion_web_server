@@ -4,24 +4,52 @@
     <meta charset="UTF-8">
     <title>Chat &ndash; ServiceMillion</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <script>
-        const socket = new WebSocket("ws://localhost:8844");
-        socket.onopen = function (event) {
-            socket.send('{{ queue_id }}');
-        };
-        socket.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-            alert(data)
-        };
-    </script>
 </head>
 <body>
+<nav class="blue-grey darken-2">
+    <div class="container nav-wrapper">
+        <a href="#" class="brand-logo">ServiceMillion</a>
+    </div>
+</nav>
 <div class="container">
-    <div class="row" style="margin-top: 10vh">
-        Queue ID: {{ queue_id }}
+    <div class="row" style="margin-top: 30px">
+        <div class="col s12 m10 l8 push-m1 push-l2">
+            <div id="messages" class="collection" style="padding: 20px"></div>
+            <div class="input-field" style="margin-top: 50px">
+                <textarea id="message" name="message" class="materialize-textarea"></textarea>
+                <label for="message">Message</label>
+            </div>
+            <a class="btn waves-effect waves-light blue-grey darken-2" style="width: 100%"
+            onclick="send('text', document.getElementById('message').value)">Send</a>
+        </div>
     </div>
 </div>
+<script>
+    const messages = document.getElementById("messages");
+    const socket = new WebSocket("ws://localhost:8844");
+    socket.onopen = function () { socket.send('{{ queue_id }}'); };
+    socket.onclose = function () { console.log('closed'); };
+    socket.onmessage = function (event) {
+        const data = JSON.parse(event.data);
 
+        if (data['type'] === 'image') {
+            messages.innerHTML += '<a class="collection-item active left" style="clear: both; border-radius: 12px"><img src="data:image/png;base64,' + data['data'] + '" /></a>';
+        } else {
+            messages.innerHTML += '<a class="collection-item active left" style="clear: both; border-radius: 12px">'
+                + data['data'] + '</a>';
+        }
+    };
+    function send(type, data) {
+        socket.send(JSON.stringify({'is_customer': true, 'type': 'text', 'data': data}));
+        const messages = document.getElementById("messages");
+        if (type === 'image') {
+            messages.innerHTML += '<a class="collection-item active right" style="clear: both; border-radius: 12px"><img src="data:image/png;base64,' + data + '" /></a>';
+        } else {
+            messages.innerHTML += '<a class="collection-item active right" style="clear: both; border-radius: 12px">'
+                + data + '</a>';
+        }
+    }
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </body>
 </html>
